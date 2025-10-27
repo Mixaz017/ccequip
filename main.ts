@@ -88,7 +88,7 @@ if (import.meta.main) {
 		}).sort((a, b) => b.score - a.score).slice(
 			0,
 			typeof flags.top === "number" ? flags.top : filtered.length,
-		).map((equip) => `${equip.score.toPrecision(3)}:\t${equip.data.name.en_US}`)
+		).map((equip) => `${equip.score.toFixed(3)}:\t${equip.data.name.en_US}`)
 			.join("\n"),
 	);
 }
