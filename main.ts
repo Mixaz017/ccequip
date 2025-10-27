@@ -52,6 +52,7 @@ if (import.meta.main) {
 		} as Record<string, number>,
 		fallback: 1,
 	});
+	console.log(userWeight);
 	const filtered = equiplist.filter((equip) =>
 		flags.type.includes(equip.equipType.toLowerCase())
 	);
@@ -82,13 +83,17 @@ if (import.meta.main) {
 				) * 100;
 	};
 
-	console.log(
+	console.table(
 		filtered.map((equip) => {
 			return { data: equip, score: scoreEquip(equip) };
 		}).sort((a, b) => b.score - a.score).slice(
 			0,
 			typeof flags.top === "number" ? flags.top : filtered.length,
-		).map((equip) => `${equip.score.toFixed(3)}:\t${equip.data.name.en_US}`)
-			.join("\n"),
+		).map((equip) => {
+			return {
+				score: Math.round(equip.score * 1e3) / 1e3,
+				name: equip.data.name.en_US,
+			};
+		}),
 	);
 }
