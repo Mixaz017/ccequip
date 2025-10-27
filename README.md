@@ -35,3 +35,6 @@ Each stat is multiplied by its weight and added up to calculate the final score.
 - Modifiers: 1% = 1 score by default. Non-percent based modifiers are treated as +1 = 100%.
   - Modifiers that don't affect combat have a weight of 0 by default, even when setting a custom fallback weight.
     - These are: Botanist (`rank_plants`), Keeper (`money_plus`), Lucky Lucky (`drop_chance`), Trainer (`xp_plus`), and Zero XP (`xp_zero`).
+
+## Generating item data
+`data/equip.json` file is generated from the CrossCode's internal data. This file can be updated using `deno task datagen <path_to_your_crosscode_directory>`.
