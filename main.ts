@@ -1,5 +1,5 @@
 import { parseArgs } from "@std/cli/parse-args";
-import equiplist from "./data/equips.json" with { type: "json" };
+import equiplist from "./data/equip.json" with { type: "json" };
 import { BASE_STATS, ELEMENTS } from "./constants.ts";
 
 if (import.meta.main) {

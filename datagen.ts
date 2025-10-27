@@ -14,6 +14,6 @@ const items: Item[] = JSON.parse(
 	Deno.readTextFileSync(join(gamePath, "assets", "data", "item-database.json")),
 ).items;
 Deno.writeTextFileSync(
-	join(Deno.cwd(), "data", "equips.json"),
+	join(Deno.cwd(), "data", "equip.json"),
 	JSON.stringify(items.filter((item) => item.type === "EQUIP")),
 );
