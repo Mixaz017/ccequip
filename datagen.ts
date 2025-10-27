@@ -1,7 +1,10 @@
 import { join } from "@std/path";
 
 const gamePath = Deno.args[0];
-if (!gamePath) throw Error("No path specified");
+if (!gamePath) {
+	console.error("No path specified");
+	Deno.exit(1);
+}
 
 type Item = {
 	type: string;
