@@ -15,6 +15,8 @@ Equipment items are scored and sorted based on their weighted stat totals.
 
 `-n`, `--top <number>`: Only show specified number of items
 
+`-u`, `--unobtainable`: Include unobtainable items (items with their name starting with `-`)
+
 `--list-modifiers`: List known modifier names
 
 ### Weight specifier

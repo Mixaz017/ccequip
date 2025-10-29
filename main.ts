@@ -6,9 +6,9 @@ if (import.meta.main) {
 	const flags = parseArgs(Deno.args, {
 		collect: ["type", "weight"],
 		default: { level: 85, type: ["head", "arm", "torso", "feet"] },
-		boolean: ["list-modifiers"],
+		boolean: ["list-modifiers", "unobtainable"],
 		string: ["type", "weight"],
-		alias: { w: "weight", t: "type", l: "level", n: "top" },
+		alias: { w: "weight", t: "type", l: "level", n: "top", u: "unobtainable" },
 	});
 
 	const modifiers = Array.from(equiplist.reduce((modifiers, equip) => {
@@ -53,7 +53,8 @@ if (import.meta.main) {
 		fallback: 1,
 	});
 	const filtered = equiplist.filter((equip) =>
-		flags.type.includes(equip.equipType.toLowerCase())
+		flags.type.includes(equip.equipType.toLowerCase()) &&
+		(flags.unobtainable || !equip.name.en_US.startsWith("-"))
 	);
 
 	const scoreEquip = function (equip: (typeof equiplist)[number]) {
