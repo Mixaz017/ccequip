@@ -3,6 +3,16 @@ import equiplist from "./data/equip.json" with { type: "json" };
 import { BASE_STATS, ELEMENTS } from "./constants.ts";
 
 if (import.meta.main) {
+	type Stats = (typeof BASE_STATS)[number] | (typeof ELEMENTS)[number];
+	type WeightMapping = {
+		stat: Partial<Record<Stats, number>>;
+		modifier: Record<string, number>;
+		fallback: number;
+	};
+
+	const isStat = (name: string): name is Stats => {
+		return ([...BASE_STATS, ...ELEMENTS] as readonly string[]).includes(name);
+	};
 	const flags = parseArgs(Deno.args, {
 		collect: ["type", "weight"],
 		default: { level: 85, type: ["head", "arm", "torso", "feet"] },
@@ -24,68 +34,75 @@ if (import.meta.main) {
 	}
 
 	// Parse weight args
-	const userWeight = flags.weight.reduce((weights, weightStr) => {
-		const match = /(?:(\w+)\s*:\s*)?(-?(?:\d*\.)?\d+)/.exec(weightStr);
-		if (match !== null) {
-			const statName = match[1]?.toLowerCase() ?? "fallback";
-			const weight = parseFloat(match[2]);
-			if (BASE_STATS.concat(ELEMENTS).includes(statName)) {
-				weights.stat[statName] = weight;
-			} else if (modifiers.includes(statName)) {
-				weights.modifier[statName] = weight;
-			} else if (statName === "fallback") weights.fallback = weight;
-			else {
-				console.error(`Unknown stat/modifier "${statName}", exiting`);
-				Deno.exit(1);
+	const userWeight: WeightMapping = flags.weight.reduce(
+		(weights, weightStr) => {
+			const match = /(?:(\w+)\s*:\s*)?(-?(?:\d*\.)?\d+)/.exec(weightStr);
+			if (match !== null) {
+				const statName = match[1]?.toLowerCase() ?? "fallback";
+				const weight = parseFloat(match[2]);
+
+				if (isStat(statName)) {
+					weights.stat[statName] = weight;
+				} else if (modifiers.includes(statName)) {
+					weights.modifier[statName] = weight;
+				} else if (statName === "fallback") weights.fallback = weight;
+				else {
+					console.error(`Unknown stat/modifier "${statName}", exiting`);
+					Deno.exit(1);
+				}
 			}
-		}
-		return weights;
-	}, {
-		// Default weights
-		stat: {} as Record<string, number>,
-		modifier: {
-			rank_plants: 0,
-			money_plus: 0,
-			drop_chance: 0,
-			xp_plus: 0,
-			xp_zero: 0,
-		} as Record<string, number>,
-		fallback: 1,
-	});
+			return weights;
+		},
+		{
+			// Default weights
+			stat: {},
+			modifier: {
+				rank_plants: 0,
+				money_plus: 0,
+				drop_chance: 0,
+				xp_plus: 0,
+				xp_zero: 0,
+			},
+			fallback: 1,
+		} as WeightMapping,
+	);
 	const filtered = equiplist.filter((equip) =>
 		flags.type.includes(equip.equipType.toLowerCase()) &&
 		(flags.unobtainable || !equip.name.en_US.startsWith("-"))
 	);
 
-	const scoreEquip = function (equip: (typeof equiplist)[number]) {
+	const scoreEquip = function (
+		equip: (typeof equiplist)[number],
+		weightMap: WeightMapping,
+	) {
 		return (equip.params.hp ?? 0) * 0.1 *
-				(userWeight.stat.hp ?? userWeight.fallback) +
+				(weightMap.stat.hp ?? weightMap.fallback) +
 			(equip.params.attack ?? 0) *
-				(userWeight.stat.defence ?? userWeight.fallback) +
+				(weightMap.stat.attack ?? weightMap.fallback) +
 			(equip.params.defense ?? 0) *
-				(userWeight.stat.defense ?? userWeight.fallback) +
+				(weightMap.stat.defense ?? weightMap.fallback) +
 			(equip.params.focus ?? 0) *
-				(userWeight.stat.focus ?? userWeight.fallback) +
+				(weightMap.stat.focus ?? weightMap.fallback) +
 			ELEMENTS.reduce(
 					(score, element, index) =>
 						score +
 						(equip.params.elemFactor[index] - 1) *
-							(userWeight.stat[element] ?? userWeight.fallback),
+							(weightMap.stat[element] ?? weightMap.fallback),
 					0,
 				) * 100 +
 			Object.entries(equip.properties).reduce(
 					(score, [modName, modValue]) =>
 						score +
 						(modValue - 1) *
-							(userWeight.modifier[modName.toLowerCase()] ??
-								userWeight.fallback),
+							(weightMap.modifier[modName.toLowerCase()] ??
+								weightMap.fallback),
 					0,
 				) * 100;
 	};
 
 	console.table(
 		filtered.map((equip) => {
-			return { data: equip, score: scoreEquip(equip) };
+			return { data: equip, score: scoreEquip(equip, userWeight) };
 		}).sort((a, b) => b.score - a.score).slice(
 			0,
 			typeof flags.top === "number" ? flags.top : filtered.length,
