@@ -52,7 +52,6 @@ if (import.meta.main) {
 		} as Record<string, number>,
 		fallback: 1,
 	});
-	console.log(userWeight);
 	const filtered = equiplist.filter((equip) =>
 		flags.type.includes(equip.equipType.toLowerCase())
 	);
