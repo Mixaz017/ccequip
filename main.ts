@@ -14,6 +14,10 @@ if (import.meta.main) {
 		return ([...BASE_STATS, ...ELEMENTS] as readonly string[]).includes(name);
 	};
 
+	const roundPrecision = function (x: number, precision: number) {
+		return Math.round(x * 10 ** precision) / 10 ** precision;
+	};
+
 	const flags = parseArgs(Deno.args, {
 		collect: ["type", "weight"],
 		default: { level: 85, type: ["head", "arm", "torso", "feet"] },
@@ -78,42 +82,57 @@ if (import.meta.main) {
 	const scoreEquip = function (
 		equip: (typeof equiplist)[number],
 		weightMap: WeightMapping,
+		level?: number, // TODO: Implement level scaling
 	) {
-		return (equip.params.hp ?? 0) * 0.1 *
-				(weightMap.stat.hp ?? weightMap.fallback) +
-			(equip.params.attack ?? 0) *
-				(weightMap.stat.attack ?? weightMap.fallback) +
-			(equip.params.defense ?? 0) *
-				(weightMap.stat.defense ?? weightMap.fallback) +
-			(equip.params.focus ?? 0) *
-				(weightMap.stat.focus ?? weightMap.fallback) +
-			ELEMENTS.reduce(
-					(score, element, index) =>
-						score +
-						(equip.params.elemFactor[index] - 1) *
-							(weightMap.stat[element] ?? weightMap.fallback),
-					0,
-				) * 100 +
-			Object.entries(equip.properties).reduce(
-					(score, [modName, modValue]) =>
-						score +
-						(modValue - 1) *
-							(weightMap.modifier[modName.toLowerCase()] ??
-								weightMap.fallback),
-					0,
-				) * 100;
+		const score = {
+			total: 0,
+			weighted: {},
+		};
+
+		const scoreStat = function (stat: number, weight?: number, name: string) {
+			const weightedStat = (stat ?? 0) * (weight ?? weightMap.fallback);
+			if (weightedStat !== 0) {
+				score.weighted[name] = weightedStat;
+				score.total += weightedStat;
+			}
+		};
+
+		scoreStat((equip.params.hp ?? 0) * 0.1, weightMap.stat.hp, "hp");
+		scoreStat(equip.params.attack ?? 0, weightMap.stat.atack, "attack");
+		scoreStat(equip.params.defense ?? 0, weightMap.stat.defense, "defense");
+		scoreStat(equip.params.focus ?? 0, weightMap.stat.focus, "focus");
+
+		ELEMENTS.forEach((element, index) =>
+			scoreStat(
+				(equip.params.elemFactor[index] - 1) * 100,
+				weightMap.stat[element],
+				element,
+			)
+		);
+
+		for (const modName in equip.properties) {
+			scoreStat(
+				(equip.properties[modName] - 1) * 100,
+				weightMap.modifier[modName.toLowerCase()],
+				modName.toLowerCase(),
+			);
+		}
+		return score;
 	};
 
 	console.table(
 		filtered.map((equip) => {
-			return { data: equip, score: scoreEquip(equip, userWeight) };
-		}).sort((a, b) => b.score - a.score).slice(
+			return { data: equip, score: scoreEquip(equip, userWeight, flags.level) };
+		}).sort((a, b) => b.score.total - a.score.total).slice(
 			0,
 			typeof flags.top === "number" ? flags.top : filtered.length,
 		).map((equip) => {
 			return {
-				score: Math.round(equip.score * 1e3) / 1e3,
+				score: roundPrecision(equip.score.total, 3),
 				name: equip.data.name.en_US,
+				breakdown: Object.entries(equip.score.weighted).map((
+					[statName, score],
+				) => `${statName}: ${roundPrecision(score, 3)}`).join(", "),
 			};
 		}),
 	);
