@@ -13,6 +13,7 @@ if (import.meta.main) {
 	const isStat = (name: string): name is Stats => {
 		return ([...BASE_STATS, ...ELEMENTS] as readonly string[]).includes(name);
 	};
+
 	const flags = parseArgs(Deno.args, {
 		collect: ["type", "weight"],
 		default: { level: 85, type: ["head", "arm", "torso", "feet"] },
@@ -50,6 +51,9 @@ if (import.meta.main) {
 					console.error(`Unknown stat/modifier "${statName}", exiting`);
 					Deno.exit(1);
 				}
+			} else {
+				console.error(`Invalid weight specifier "${weightStr}"`);
+				Deno.exit(1);
 			}
 			return weights;
 		},
