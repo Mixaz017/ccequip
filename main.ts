@@ -25,6 +25,15 @@ if (import.meta.main) {
 		string: ["type", "weight"],
 		alias: { w: "weight", t: "type", l: "level", n: "top", u: "unobtainable" },
 	});
+	if (typeof flags.level !== "number") {
+		console.error(`${flags.level} is not a valid level.`);
+		Deno.exit(1);
+	} else if (flags.level < 1 || flags.level > 99) {
+		console.error(
+			`${flags.level} is outside of the normal level range, it must be between 1 to 99 inclusive.`,
+		);
+		Deno.exit(1);
+	}
 
 	const modifiers = Array.from(equiplist.reduce((modifiers, equip) => {
 		Object.keys(equip.properties).forEach((modifier) =>
@@ -86,10 +95,14 @@ if (import.meta.main) {
 	) {
 		const score = {
 			total: 0,
-			weighted: {},
+			weighted: {} as Record<string, number>,
 		};
 
-		const scoreStat = function (stat: number, weight?: number, name: string) {
+		const scoreStat = function (
+			stat: number,
+			weight: number | undefined,
+			name: string,
+		) {
 			const weightedStat = (stat ?? 0) * (weight ?? weightMap.fallback);
 			if (weightedStat !== 0) {
 				score.weighted[name] = weightedStat;
@@ -98,7 +111,7 @@ if (import.meta.main) {
 		};
 
 		scoreStat((equip.params.hp ?? 0) * 0.1, weightMap.stat.hp, "hp");
-		scoreStat(equip.params.attack ?? 0, weightMap.stat.atack, "attack");
+		scoreStat(equip.params.attack ?? 0, weightMap.stat.attack, "attack");
 		scoreStat(equip.params.defense ?? 0, weightMap.stat.defense, "defense");
 		scoreStat(equip.params.focus ?? 0, weightMap.stat.focus, "focus");
 
@@ -112,7 +125,7 @@ if (import.meta.main) {
 
 		for (const modName in equip.properties) {
 			scoreStat(
-				(equip.properties[modName] - 1) * 100,
+				((equip.properties as Record<string, number>)[modName] - 1) * 100,
 				weightMap.modifier[modName.toLowerCase()],
 				modName.toLowerCase(),
 			);
@@ -122,7 +135,10 @@ if (import.meta.main) {
 
 	console.table(
 		filtered.map((equip) => {
-			return { data: equip, score: scoreEquip(equip, userWeight, flags.level) };
+			return {
+				data: equip,
+				score: scoreEquip(equip, userWeight, flags.level as number),
+			};
 		}).sort((a, b) => b.score.total - a.score.total).slice(
 			0,
 			typeof flags.top === "number" ? flags.top : filtered.length,
