@@ -1,6 +1,7 @@
 import { parseArgs } from "@std/cli/parse-args";
 import equiplist from "./data/equip.json" with { type: "json" };
-import { BASE_STATS, ELEMENTS } from "./constants.ts";
+import { BASE_STATS, ELEMENTS, SCALING_TABLE } from "./constants.ts";
+import { limit, roundPrecision } from "./utils.ts";
 
 if (import.meta.main) {
 	type Stats = (typeof BASE_STATS)[number] | (typeof ELEMENTS)[number];
@@ -12,10 +13,6 @@ if (import.meta.main) {
 
 	const isStat = (name: string): name is Stats => {
 		return ([...BASE_STATS, ...ELEMENTS] as readonly string[]).includes(name);
-	};
-
-	const roundPrecision = function (x: number, precision: number) {
-		return Math.round(x * 10 ** precision) / 10 ** precision;
 	};
 
 	const flags = parseArgs(Deno.args, {
@@ -91,7 +88,7 @@ if (import.meta.main) {
 	const scoreEquip = function (
 		equip: (typeof equiplist)[number],
 		weightMap: WeightMapping,
-		level?: number, // TODO: Implement level scaling
+		scaleLevel?: number,
 	) {
 		const score = {
 			total: 0,
@@ -109,6 +106,60 @@ if (import.meta.main) {
 				score.total += weightedStat;
 			}
 		};
+
+		const getAverageStat = function (level: number, statType: "base" | "hp") {
+			const scaleIndex = SCALING_TABLE.findIndex((scale) =>
+				scale.level >= level
+			);
+			if (scaleIndex === -1) return 1;
+			const scaling = SCALING_TABLE[scaleIndex];
+			if (scaling.level === scaleLevel) return scaling[statType];
+			const scalingHigh = SCALING_TABLE[scaleIndex + 1];
+			return scaling[statType] +
+				(scalingHigh[statType] - scaling[statType]) *
+					((level - scaling.level) / (scalingHigh.level - scaling.level));
+		};
+
+		const getFactor = function (
+			baseLevel: number,
+			scaleLevel: number,
+			factorType: "base" | "hp",
+		) {
+			return getAverageStat(scaleLevel, factorType) /
+				getAverageStat(baseLevel, factorType);
+		};
+
+		if (scaleLevel && equip.isScalable) {
+			const baseFactor = getFactor(equip.level, scaleLevel, "base");
+			const hpFactor = getFactor(equip.level, scaleLevel, "hp");
+			console.log(
+				`${equip.name.en_US} scaled to lvl ${scaleLevel} (${baseFactor}x)`,
+			);
+			if (equip.params.hp) {
+				equip.params.hp = Math.max(1, Math.round(equip.params.hp * hpFactor));
+			}
+			if (equip.params.attack) {
+				equip.params.attack = limit(
+					Math.round(equip.params.attack * baseFactor),
+					0,
+					999,
+				);
+			}
+			if (equip.params.defense) {
+				equip.params.defense = limit(
+					Math.round(equip.params.defense * baseFactor),
+					0,
+					999,
+				);
+			}
+			if (equip.params.focus) {
+				equip.params.focus = limit(
+					Math.round(equip.params.focus * baseFactor),
+					0,
+					999,
+				);
+			}
+		}
 
 		scoreStat((equip.params.hp ?? 0) * 0.1, weightMap.stat.hp, "hp");
 		scoreStat(equip.params.attack ?? 0, weightMap.stat.attack, "attack");
