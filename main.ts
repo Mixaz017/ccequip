@@ -132,9 +132,6 @@ if (import.meta.main) {
 		if (scaleLevel && equip.isScalable) {
 			const baseFactor = getFactor(equip.level, scaleLevel, "base");
 			const hpFactor = getFactor(equip.level, scaleLevel, "hp");
-			console.log(
-				`${equip.name.en_US} scaled to lvl ${scaleLevel} (${baseFactor}x)`,
-			);
 			if (equip.params.hp) {
 				equip.params.hp = Math.max(1, Math.round(equip.params.hp * hpFactor));
 			}
