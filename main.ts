@@ -1,6 +1,6 @@
 import { parseArgs } from "@std/cli/parse-args";
-import { parseDatabase } from "./lib/equiplist.ts";
 import { BASE_STATS, ELEMENTS, SCALING_TABLE } from "./lib/constants.ts";
+import { parseDatabase } from "./lib/equiplist.ts";
 import { limit, roundPrecision } from "./lib/utils.ts";
 
 if (import.meta.main) {
@@ -197,7 +197,7 @@ if (import.meta.main) {
 		).map((equip) => {
 			return {
 				score: roundPrecision(equip.score.total, 3),
-				name: equip.data.name.en_US,
+				name: equip.data.name.en_US ?? `(Item ID ${equip.data.order})`,
 				breakdown: Object.entries(equip.score.weighted).map((
 					[statName, score],
 				) => `${statName}: ${roundPrecision(score, 3)}`).join(", "),
