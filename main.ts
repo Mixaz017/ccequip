@@ -1,7 +1,7 @@
 import { parseArgs } from "@std/cli/parse-args";
-import equiplist from "./data/equip.json" with { type: "json" };
-import { BASE_STATS, ELEMENTS, SCALING_TABLE } from "./constants.ts";
-import { limit, roundPrecision } from "./utils.ts";
+import { parseDatabase } from "./lib/equiplist.ts";
+import { BASE_STATS, ELEMENTS, SCALING_TABLE } from "./lib/constants.ts";
+import { limit, roundPrecision } from "./lib/utils.ts";
 
 if (import.meta.main) {
 	type Stats = (typeof BASE_STATS)[number] | (typeof ELEMENTS)[number];
@@ -14,6 +14,10 @@ if (import.meta.main) {
 	const isStat = (name: string): name is Stats => {
 		return ([...BASE_STATS, ...ELEMENTS] as readonly string[]).includes(name);
 	};
+
+	const equiplist = parseDatabase({
+		items: JSON.parse(Deno.readTextFileSync("./data/equip.json")),
+	}).items;
 
 	const flags = parseArgs(Deno.args, {
 		collect: ["type", "weight"],
@@ -82,7 +86,7 @@ if (import.meta.main) {
 	);
 	const filtered = equiplist.filter((equip) =>
 		flags.type.includes(equip.equipType.toLowerCase()) &&
-		(flags.unobtainable || !equip.name.en_US.startsWith("-"))
+		(flags.unobtainable || !equip.name.en_US?.startsWith("-"))
 	);
 
 	const scoreEquip = function (
