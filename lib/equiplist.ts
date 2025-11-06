@@ -1,5 +1,7 @@
 import * as v from "@valibot/valibot";
 
+// Translated properties are intentionally checked loosely to allow custom items.
+// Everything else must be as strict as the official item database.
 const EquipSchema = v.object({
 	items: v.pipe(
 		v.array(v.looseObject({ type: v.string() })),
