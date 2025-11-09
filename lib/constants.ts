@@ -1,5 +1,6 @@
 export const BASE_STATS = ["hp", "attack", "defense", "focus"] as const;
 export const ELEMENTS = ["heat", "cold", "shock", "wave"] as const;
+export type StatName = (typeof BASE_STATS)[number] | (typeof ELEMENTS)[number];
 // Directly taken from game.compiled.js
 export const SCALING_TABLE = [
 	{ level: 1, base: 20, hp: 205 },
